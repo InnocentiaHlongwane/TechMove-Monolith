@@ -1,0 +1,17 @@
+@model Client
+<h1>@Model.Name</h1>
+<div class="panel">
+    <p><strong>Contact:</strong> @Model.ContactDetails</p>
+    <p><strong>Region:</strong> @Model.Region</p>
+    <h2>Contracts</h2>
+    @if(Model.Contracts.Any()){
+        <ul>
+            @foreach(var c in Model.Contracts){
+                <li>Contract #@c.Id — @c.Status (@c.StartDate.ToString("d") to @c.EndDate.ToString("d"))</li>
+            }
+        </ul>
+    }else{
+        <p>No contracts linked to this client.</p>
+    }
+    <a asp-action="Index">Back to clients</a>
+</div>

@@ -1,0 +1,59 @@
+@model IEnumerable<Contract>
+
+<div class="page-heading">
+    <div>
+        <h1>Contracts</h1>
+        <p>Filter contracts by date range and status.</p>
+    </div>
+    <a class="button" asp-action="Create">+ New contract</a>
+</div>
+
+<form method="get" class="panel filters">
+    <div>
+        <label for="startDate">Start date from</label>
+        <input type="date" id="startDate" name="startDate" value="@ViewBag.StartDate" />
+    </div>
+    <div>
+        <label for="endDate">End date to</label>
+        <input type="date" id="endDate" name="endDate" value="@ViewBag.EndDate" />
+    </div>
+    <div>
+        <label for="status">Status</label>
+        <select id="status" name="status">
+            <option value="">All statuses</option>
+            @foreach(var s in Enum.GetValues<ContractStatus>()){
+                <option value="@s" selected="@(ViewBag.Status != null && (ContractStatus)ViewBag.Status == s)">@s</option>
+            }
+        </select>
+    </div>
+    <button class="button">Apply filters</button>
+    <a asp-action="Index">Clear</a>
+</form>
+
+<div class="panel">
+    <table>
+        <thead>
+            <tr>
+                <th>Client</th>
+                <th>Dates</th>
+                <th>Status</th>
+                <th>Service level</th>
+                <th>Agreement</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach(var c in Model){
+                <tr>
+                    <td>@c.Client?.Name</td>
+                    <td>@c.StartDate.ToString("yyyy-MM-dd") – @c.EndDate.ToString("yyyy-MM-dd")</td>
+                    <td><span class="status">@c.Status</span></td>
+                    <td>@c.ServiceLevel</td>
+                    <td><a asp-action="Download" asp-route-id="@c.Id">Download PDF</a></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    @if(!Model.Any()){
+        <p class="empty">No contracts match these filters.</p>
+    }
+</div>

@@ -1,0 +1,7 @@
+bin/
+obj/
+.vs/
+*.user
+*.suo
+TechMove.Web/wwwroot/uploads/*
+!TechMove.Web/wwwroot/uploads/.gitkeep

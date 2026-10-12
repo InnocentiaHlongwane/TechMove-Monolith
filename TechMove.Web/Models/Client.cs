@@ -1,0 +1,3 @@
+using System.ComponentModel.DataAnnotations;
+namespace TechMove.Web.Models;
+public class Client { public int Id { get; set; } [Required, StringLength(120)] public string Name { get; set; } = ""; [Required, StringLength(200)] public string ContactDetails { get; set; } = ""; [Required, StringLength(100)] public string Region { get; set; } = ""; public List<Contract> Contracts { get; set; } = new(); }

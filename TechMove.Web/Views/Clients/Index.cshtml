@@ -1,0 +1,35 @@
+@model IEnumerable<Client>
+<div class="page-heading">
+    <div>
+        <h1>Clients</h1>
+        <p>Registered TechMove customers.</p>
+    </div>
+    <a class="button" asp-action="Create">+ New client</a>
+</div>
+<div class="panel">
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Contact details</th>
+                <th>Region</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach(var c in Model)
+            {
+                <tr>
+                    <td>@c.Name</td>
+                    <td>@c.ContactDetails</td>
+                    <td>@c.Region</td>
+                    <td><a asp-action="Details" asp-route-id="@c.Id">Details</a></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    @if(!Model.Any())
+    {
+        <p class="empty">No clients yet. Create your first client.</p>
+    }
+</div>

@@ -1,0 +1,3 @@
+using Microsoft.AspNetCore.Mvc; using Microsoft.EntityFrameworkCore; using TechMove.Web.Data; using TechMove.Web.Models;
+namespace TechMove.Web.Controllers;
+public class ClientsController(AppDbContext db) : Controller { public async Task<IActionResult> Index() => View(await db.Clients.OrderBy(c=>c.Name).ToListAsync()); public IActionResult Create() => View(); [HttpPost, ValidateAntiForgeryToken] public async Task<IActionResult> Create(Client client) { if (!ModelState.IsValid) return View(client); db.Clients.Add(client); await db.SaveChangesAsync(); return RedirectToAction(nameof(Index)); } public async Task<IActionResult> Details(int id) { var c=await db.Clients.Include(x=>x.Contracts).FirstOrDefaultAsync(x=>x.Id==id); return c is null?NotFound():View(c); } }

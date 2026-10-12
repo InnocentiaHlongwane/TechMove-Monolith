@@ -1,0 +1,3 @@
+using System.ComponentModel.DataAnnotations;
+namespace TechMove.Web.Models;
+public class ServiceRequest { public int Id { get; set; } [Required] public int ContractId { get; set; } public Contract? Contract { get; set; } [Required, StringLength(1000)] public string Description { get; set; } = ""; [Range(0.01, 100000000)] public decimal Cost { get; set; } [StringLength(3)] public string Currency { get; set; } = "ZAR"; public decimal? OriginalUsdAmount { get; set; } public DateTime CreatedAt { get; set; } = DateTime.UtcNow; }

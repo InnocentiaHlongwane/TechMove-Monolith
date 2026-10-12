@@ -1,0 +1,15 @@
+@model Client
+<h1>Create client</h1>
+<form asp-action="Create" method="post" class="panel form">
+    <div asp-validation-summary="ModelOnly" class="validation"></div>
+    <label asp-for="Name"></label>
+    <input asp-for="Name"/>
+    <span asp-validation-for="Name" class="validation"></span>
+    <label asp-for="ContactDetails"></label>
+    <input asp-for="ContactDetails" placeholder="Email or phone number"/>
+    <span asp-validation-for="ContactDetails" class="validation"></span>
+    <label asp-for="Region"></label>
+    <input asp-for="Region"/>
+    <span asp-validation-for="Region" class="validation"></span>
+    <button class="button">Save client</button> <a asp-action="Index">Cancel</a>
+</form>

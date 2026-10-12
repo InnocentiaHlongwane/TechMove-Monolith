@@ -1,0 +1,37 @@
+@model IEnumerable<ServiceRequest>
+
+<div class="page-heading">
+    <div>
+        <h1>Service requests</h1>
+        <p>Costs are saved in South African rand (ZAR).</p>
+    </div>
+    <a class="button" asp-action="Create">+ New request</a>
+</div>
+
+<div class="panel">
+    <table>
+        <thead>
+            <tr>
+                <th>Created</th>
+                <th>Client / contract</th>
+                <th>Description</th>
+                <th>Original USD</th>
+                <th>Cost (ZAR)</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach(var s in Model){
+                <tr>
+                    <td>@s.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
+                    <td>@s.Contract?.Client?.Name / #@s.ContractId</td>
+                    <td>@s.Description</td>
+                    <td>@(s.OriginalUsdAmount?.ToString("C2", System.Globalization.CultureInfo.GetCultureInfo("en-US")) ?? "—")</td>
+                    <td>R @s.Cost.ToString("N2")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    @if(!Model.Any()){
+        <p class="empty">No service requests yet.</p>
+    }
+</div>

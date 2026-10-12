@@ -1,0 +1,4 @@
+using Microsoft.EntityFrameworkCore;
+using TechMove.Web.Models;
+namespace TechMove.Web.Data;
+public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options) { public DbSet<Client> Clients => Set<Client>(); public DbSet<Contract> Contracts => Set<Contract>(); public DbSet<ServiceRequest> ServiceRequests => Set<ServiceRequest>(); protected override void OnModelCreating(ModelBuilder modelBuilder) { base.OnModelCreating(modelBuilder); modelBuilder.Entity<Contract>().HasOne(c => c.Client).WithMany(c => c.Contracts).HasForeignKey(c => c.ClientId).OnDelete(DeleteBehavior.Restrict); modelBuilder.Entity<ServiceRequest>().Property(s => s.Cost).HasPrecision(18,2); modelBuilder.Entity<ServiceRequest>().Property(s => s.OriginalUsdAmount).HasPrecision(18,2); modelBuilder.Entity<ServiceRequest>().HasOne(s => s.Contract).WithMany(c => c.ServiceRequests).HasForeignKey(s => s.ContractId).OnDelete(DeleteBehavior.Restrict); } }

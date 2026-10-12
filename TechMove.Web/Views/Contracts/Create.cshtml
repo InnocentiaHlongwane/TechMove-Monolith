@@ -1,0 +1,24 @@
+@model Contract
+<h1>Create contract</h1>
+<p class="muted">A signed PDF agreement is required.</p>
+<form asp-action="Create" method="post" enctype="multipart/form-data" class="panel form">
+    <div asp-validation-summary="ModelOnly" class="validation"></div>
+    <label asp-for="ClientId">Client</label>
+    <select asp-for="ClientId" asp-items="ViewBag.ClientId"><option value="">Select client</option></select>
+    <span asp-validation-for="ClientId" class="validation"></span>
+    <label asp-for="StartDate"></label>
+    <input asp-for="StartDate" type="date"/>
+    <span asp-validation-for="StartDate" class="validation"></span>
+    <label asp-for="EndDate"></label>
+    <input asp-for="EndDate" type="date"/>
+    <span asp-validation-for="EndDate" class="validation"></span>
+    <label asp-for="Status"></label>
+    <select asp-for="Status" asp-items="Html.GetEnumSelectList<ContractStatus>()"></select>
+    <label asp-for="ServiceLevel"></label>
+    <input asp-for="ServiceLevel" placeholder="e.g. Premium support"/>
+    <span asp-validation-for="ServiceLevel" class="validation"></span>
+    <label for="signedAgreement">Signed agreement (PDF only)</label>
+    <input type="file" id="signedAgreement" name="signedAgreement" accept="application/pdf,.pdf" required/>
+    <span class="validation">@Html.ValidationMessage("signedAgreement")</span>
+    <button class="button">Save contract</button> <a asp-action="Index">Cancel</a>
+</form>

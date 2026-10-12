@@ -1,0 +1,37 @@
+@{
+    ViewData["Title"] = "Create service request";
+    var rate = (decimal)(ViewBag.UsdToZarRate ?? 0m);
+}
+
+<h1>Create service request</h1>
+<p class="muted">The live USD-to-ZAR rate is fetched from the exchange-rate API. The server recalculates the saved ZAR cost.</p>
+
+<form asp-action="Create" method="post" class="panel form" id="requestForm">
+    <div asp-validation-summary="ModelOnly" class="validation"></div>
+    <label for="contractId">Contract</label>
+    <select id="contractId" name="contractId" asp-items="ViewBag.ContractId" required>
+        <option value="">Select an eligible contract</option>
+    </select>
+    <label for="description">Description</label>
+    <textarea id="description" name="description" rows="3" maxlength="1000" required></textarea>
+    <label for="usdAmount">Amount (USD)</label>
+    <input id="usdAmount" name="usdAmount" type="number" min="0.01" step="0.01" required/>
+    <div class="calc">
+        <span>Live exchange rate</span>
+        <strong id="rateText">1 USD = R @rate.ToString("N4")</strong>
+        <span>Estimated cost in ZAR</span>
+        <strong id="zarPreview">R 0.00</strong>
+    </div>
+    <input type="hidden" id="cost" name="cost" value="0"/>
+    <input type="hidden" name="submitCurrency" value="USD"/>
+    <p id="rateError" class="validation" hidden>Live rate is unavailable. Reload the page before submitting.</p>
+    <button class="button" id="submitButton" disabled="@(rate <= 0)">Create request</button>
+    <a asp-controller="Home" asp-action="Index">Cancel</a>
+</form>
+
+@section Scripts {
+    <script>
+        window.techMoveUsdZarRate = @rate.ToString(System.Globalization.CultureInfo.InvariantCulture);
+    </script>
+    <script src="~/js/currency.js" asp-append-version="true"></script>
+}
