@@ -111,7 +111,7 @@ Tracks service requests associated with contracts, including cost and currency i
    dotnet run
 
 The application will:
-- Start on https://localhost:5001 (or http://localhost:5000)
+- Start on https://localhost:56335 or (http://localhost:56336)
 - Automatically apply EF Core migrations on startup
 - Create the SQLite database (techmove.db) if it does not exist
 
