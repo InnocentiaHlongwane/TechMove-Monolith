@@ -18,7 +18,26 @@ public class ServiceRequestsController(AppDbContext db, CurrencyService currency
 
     public async Task<IActionResult> Create()
     {
+        await LoadClients();
         await LoadContracts();
+
+        // Pass contract data as JSON for client-side filtering
+        var contracts = await db.Contracts
+            .Include(c => c.Client)
+            .Where(c => c.Status != ContractStatus.Expired && c.Status != ContractStatus.OnHold)
+            .OrderBy(c => c.Client!.Name)
+            .ToListAsync();
+
+        var contractData = contracts.Select(c => new 
+        { 
+            id = c.Id, 
+            clientId = c.Client!.Id,
+            clientName = c.Client!.Name,
+            display = $"{c.Client!.Name} — #{c.Id} ({c.Status})"
+        }).ToList();
+
+        ViewBag.ContractData = System.Text.Json.JsonSerializer.Serialize(contractData);
+
         try
         {
             ViewBag.UsdToZarRate = await currency.GetUsdToZarRateAsync();
@@ -53,6 +72,7 @@ public class ServiceRequestsController(AppDbContext db, CurrencyService currency
 
         if (!ModelState.IsValid)
         {
+            await LoadClients();
             await LoadContracts(contractId);
             try
             {
@@ -92,6 +112,14 @@ public class ServiceRequestsController(AppDbContext db, CurrencyService currency
         db.ServiceRequests.Add(request);
         await db.SaveChangesAsync();
         return RedirectToAction(nameof(Index));
+    }
+
+    private async Task LoadClients()
+    {
+        var clients = await db.Clients
+            .OrderBy(c => c.Name)
+            .ToListAsync();
+        ViewBag.ClientId = new SelectList(clients, "Id", "Name");
     }
 
     private async Task LoadContracts(int? selected = null)

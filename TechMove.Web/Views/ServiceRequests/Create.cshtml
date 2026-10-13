@@ -1,6 +1,7 @@
 @{
     ViewData["Title"] = "Create service request";
     var rate = (decimal)(ViewBag.UsdToZarRate ?? 0m);
+    var contractData = (string)ViewBag.ContractData;
 }
 
 <h1>Create service request</h1>
@@ -8,23 +9,34 @@
 
 <form asp-action="Create" method="post" class="panel form" id="requestForm">
     <div asp-validation-summary="ModelOnly" class="validation"></div>
+
+    <label for="clientId">Client</label>
+    <select id="clientId" name="clientId" asp-items="ViewBag.ClientId">
+        <option value="">Select a client</option>
+    </select>
+
     <label for="contractId">Contract</label>
-    <select id="contractId" name="contractId" asp-items="ViewBag.ContractId" required>
+    <select id="contractId" name="contractId" required>
         <option value="">Select an eligible contract</option>
     </select>
+
     <label for="description">Description</label>
     <textarea id="description" name="description" rows="3" maxlength="1000" required></textarea>
+
     <label for="usdAmount">Amount (USD)</label>
     <input id="usdAmount" name="usdAmount" type="number" min="0.01" step="0.01" required/>
+
     <div class="calc">
         <span>Live exchange rate</span>
         <strong id="rateText">1 USD = R @rate.ToString("N4")</strong>
         <span>Estimated cost in ZAR</span>
         <strong id="zarPreview">R 0.00</strong>
     </div>
+
     <input type="hidden" id="cost" name="cost" value="0"/>
     <input type="hidden" name="submitCurrency" value="USD"/>
     <p id="rateError" class="validation" hidden>Live rate is unavailable. Reload the page before submitting.</p>
+
     <button class="button" id="submitButton" disabled="@(rate <= 0)">Create request</button>
     <a asp-controller="Home" asp-action="Index">Cancel</a>
 </form>
@@ -32,6 +44,53 @@
 @section Scripts {
     <script>
         window.techMoveUsdZarRate = @rate.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        window.contractData = @Html.Raw(contractData ?? "[]");
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const clientSelect = document.getElementById('clientId');
+            const contractSelect = document.getElementById('contractId');
+            const contracts = window.contractData || [];
+
+            console.log('Contract data loaded:', contracts);
+
+            // Populate contracts on client selection
+            clientSelect.addEventListener('change', function() {
+                const selectedClientId = parseInt(this.value);
+                console.log('Selected client ID:', selectedClientId);
+
+                // Clear all options except placeholder
+                while (contractSelect.options.length > 1) {
+                    contractSelect.remove(1);
+                }
+
+                if (!selectedClientId || isNaN(selectedClientId)) {
+                    contractSelect.value = '';
+                    console.log('No valid client selected');
+                    return;
+                }
+
+                // Filter contracts for selected client
+                const filteredContracts = contracts.filter(c => {
+                    console.log('Checking contract:', c, 'Client ID match?', c.clientId === selectedClientId);
+                    return c.clientId === selectedClientId;
+                });
+
+                console.log('Filtered contracts:', filteredContracts);
+
+                // Add filtered contracts to dropdown
+                if (filteredContracts.length > 0) {
+                    filteredContracts.forEach(contract => {
+                        const option = document.createElement('option');
+                        option.value = contract.id;
+                        option.textContent = contract.display;
+                        contractSelect.appendChild(option);
+                    });
+                } else {
+                    console.warn('No contracts found for client ID:', selectedClientId);
+                }
+            });
+        });
     </script>
     <script src="~/js/currency.js" asp-append-version="true"></script>
 }
