@@ -7,10 +7,10 @@ public class ServiceRequestDto
 {
     public int Id { get; set; }
     public int ContractId { get; set; }
-    public string Title { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
+    public decimal Cost { get; set; }
+    public string Currency { get; set; } = "ZAR";
     public DateTime CreatedAt { get; set; }
-    public string Status { get; set; } = string.Empty;
 }
 
 /// <summary>
@@ -19,6 +19,7 @@ public class ServiceRequestDto
 public class CreateServiceRequestDto
 {
     public int ContractId { get; set; }
-    public string Title { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
+    public decimal Cost { get; set; }
+    public string? Currency { get; set; }
 }

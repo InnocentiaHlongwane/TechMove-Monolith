@@ -1,14 +1,109 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
-using Microsoft.EntityFrameworkCore;
-using TechMove.Core.Data;
 using TechMove.Core.Models;
 using TechMove.Core.Services;
+using TechMove.Web.Services;
+
 namespace TechMove.Web.Controllers;
-public class ContractsController(AppDbContext db, IWebHostEnvironment env) : Controller {
- public async Task<IActionResult> Index(DateTime? startDate, DateTime? endDate, ContractStatus? status) { var query=db.Contracts.Include(c=>c.Client).AsQueryable(); if(startDate.HasValue) query=query.Where(c=>c.StartDate>=startDate.Value); if(endDate.HasValue) query=query.Where(c=>c.EndDate<=endDate.Value); if(status.HasValue) query=query.Where(c=>c.Status==status.Value); ViewBag.StartDate=startDate?.ToString("yyyy-MM-dd"); ViewBag.EndDate=endDate?.ToString("yyyy-MM-dd"); ViewBag.Status=status; return View(await query.OrderByDescending(c=>c.StartDate).ToListAsync()); }
- public async Task<IActionResult> Create() { await LoadClients(); return View(); }
- [HttpPost, ValidateAntiForgeryToken] public async Task<IActionResult> Create(Contract contract, IFormFile? signedAgreement) { if(signedAgreement is null || signedAgreement.Length==0) ModelState.AddModelError(nameof(signedAgreement),"A signed PDF agreement is required."); else if(!UploadValidator.IsValidPdf(signedAgreement.FileName,signedAgreement.ContentType)) ModelState.AddModelError(nameof(signedAgreement),"Only PDF files are allowed."); if(contract.EndDate < contract.StartDate) ModelState.AddModelError(nameof(contract.EndDate),"End date must be on or after the start date."); if(!ModelState.IsValid) { await LoadClients(contract.ClientId); return View(contract); } var folder=Path.Combine(env.WebRootPath,"uploads"); Directory.CreateDirectory(folder); var fileName=$"{Guid.NewGuid():N}.pdf"; var path=Path.Combine(folder,fileName); await using(var stream=System.IO.File.Create(path)) await signedAgreement!.CopyToAsync(stream); contract.SignedAgreementPath=$"uploads/{fileName}"; db.Contracts.Add(contract); await db.SaveChangesAsync(); return RedirectToAction(nameof(Index)); }
- public async Task<IActionResult> Download(int id) { var c=await db.Contracts.FindAsync(id); if(c is null) return NotFound(); var fullPath=Path.Combine(env.WebRootPath,c.SignedAgreementPath.Replace('/',Path.DirectorySeparatorChar)); if(!System.IO.File.Exists(fullPath)) return NotFound("Agreement file was not found."); return PhysicalFile(fullPath,"application/pdf",$"Contract-{c.Id}-Agreement.pdf"); }
- private async Task LoadClients(int? selected=null) => ViewBag.ClientId=new SelectList(await db.Clients.OrderBy(c=>c.Name).ToListAsync(),"Id","Name",selected);
+
+/// <summary>
+/// MVC Controller for managing contracts via API calls
+/// </summary>
+public class ContractsController(IContractApiClient contractClient, IClientApiClient clientClient) : Controller
+{
+    /// <summary>
+    /// Display list of contracts with optional filtering
+    /// </summary>
+    public async Task<IActionResult> Index(DateTime? startDate, DateTime? endDate, ContractStatus? status)
+    {
+        var contracts = await contractClient.GetContractsAsync(startDate, endDate, status);
+
+        ViewBag.StartDate = startDate?.ToString("yyyy-MM-dd");
+        ViewBag.EndDate = endDate?.ToString("yyyy-MM-dd");
+        ViewBag.Status = status;
+
+        return View(contracts);
+    }
+
+    /// <summary>
+    /// Display create contract form
+    /// </summary>
+    public async Task<IActionResult> Create()
+    {
+        await LoadClients();
+        return View();
+    }
+
+    /// <summary>
+    /// Handle contract creation with file upload
+    /// </summary>
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> Create(int clientId, DateTime startDate, DateTime endDate, string serviceLevel, IFormFile? signedAgreement)
+    {
+        // Validate file
+        if (signedAgreement is null || signedAgreement.Length == 0)
+        {
+            ModelState.AddModelError(nameof(signedAgreement), "A signed PDF agreement is required.");
+        }
+        else if (!UploadValidator.IsValidPdf(signedAgreement.FileName, signedAgreement.ContentType))
+        {
+            ModelState.AddModelError(nameof(signedAgreement), "Only PDF files are allowed.");
+        }
+
+        // Validate dates
+        if (endDate < startDate)
+        {
+            ModelState.AddModelError(nameof(endDate), "End date must be on or after the start date.");
+        }
+
+        if (!ModelState.IsValid)
+        {
+            await LoadClients(clientId);
+            return View();
+        }
+
+        try
+        {
+            // Call API to create contract
+            var contract = await contractClient.CreateContractAsync(clientId, startDate, endDate, serviceLevel, signedAgreement);
+
+            TempData["SuccessMessage"] = $"Contract {contract.Id} created successfully.";
+            return RedirectToAction(nameof(Index));
+        }
+        catch (Exception ex)
+        {
+            ModelState.AddModelError("", $"Error creating contract: {ex.Message}");
+            await LoadClients(clientId);
+            return View();
+        }
+    }
+
+    /// <summary>
+    /// Download contract agreement PDF
+    /// </summary>
+    public async Task<IActionResult> Download(int id)
+    {
+        try
+        {
+            var fileBytes = await contractClient.DownloadContractAsync(id);
+
+            if (fileBytes.Length == 0)
+                return NotFound("Contract not found.");
+
+            return File(fileBytes, "application/pdf", $"Contract-{id}-Agreement.pdf");
+        }
+        catch (Exception ex)
+        {
+            return NotFound($"Error downloading contract: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Load available clients for dropdown
+    /// </summary>
+    private async Task LoadClients(int? selected = null)
+    {
+        var clients = await clientClient.GetClientsAsync();
+        ViewBag.ClientId = new SelectList(clients, "Id", "Name", selected);
+    }
 }

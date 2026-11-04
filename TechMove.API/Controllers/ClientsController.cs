@@ -1,39 +1,37 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using TechMove.API.Dtos;
-using TechMove.Core.Data;
 using TechMove.Core.Models;
+using TechMove.Core.Services;
 
 namespace TechMove.API.Controllers;
 
 /// <summary>
 /// API Controller for managing clients
 /// </summary>
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
-public class ClientsController(AppDbContext db) : ControllerBase
+public class ClientsController(IClientRepository clientRepository) : ControllerBase
 {
     /// <summary>
     /// Get all clients
     /// </summary>
-    /// <returns>List of all clients</returns>
+    /// <returns>List of clients</returns>
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<List<ClientDto>>> GetClients()
     {
-        var clients = await db.Clients
-            .OrderBy(c => c.Name)
-            .Select(c => new ClientDto
-            {
-                Id = c.Id,
-                Name = c.Name,
-                Email = c.Email,
-                Phone = c.Phone,
-                Address = c.Address
-            })
-            .ToListAsync();
+        var clients = await clientRepository.GetAllAsync();
+        var dtos = clients.Select(c => new ClientDto
+        {
+            Id = c.Id,
+            Name = c.Name,
+            ContactDetails = c.ContactDetails,
+            Region = c.Region
+        }).ToList();
 
-        return Ok(clients);
+        return Ok(dtos);
     }
 
     /// <summary>
@@ -46,10 +44,7 @@ public class ClientsController(AppDbContext db) : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ClientDto>> GetClient(int id)
     {
-        var client = await db.Clients
-            .Include(c => c.Contracts)
-            .FirstOrDefaultAsync(c => c.Id == id);
-
+        var client = await clientRepository.GetByIdAsync(id);
         if (client == null)
             return NotFound();
 
@@ -57,9 +52,8 @@ public class ClientsController(AppDbContext db) : ControllerBase
         {
             Id = client.Id,
             Name = client.Name,
-            Email = client.Email,
-            Phone = client.Phone,
-            Address = client.Address
+            ContactDetails = client.ContactDetails,
+            Region = client.Region
         };
 
         return Ok(dto);
@@ -75,34 +69,28 @@ public class ClientsController(AppDbContext db) : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<ClientDto>> CreateClient([FromBody] CreateClientDto dto)
     {
-        if (string.IsNullOrWhiteSpace(dto.Name))
-            return BadRequest("Client name is required.");
-
         var client = new Client
         {
             Name = dto.Name,
-            Email = dto.Email,
-            Phone = dto.Phone,
-            Address = dto.Address
+            ContactDetails = dto.ContactDetails,
+            Region = dto.Region
         };
 
-        db.Clients.Add(client);
-        await db.SaveChangesAsync();
+        var created = await clientRepository.CreateAsync(client);
 
         var responseDto = new ClientDto
         {
-            Id = client.Id,
-            Name = client.Name,
-            Email = client.Email,
-            Phone = client.Phone,
-            Address = client.Address
+            Id = created.Id,
+            Name = created.Name,
+            ContactDetails = created.ContactDetails,
+            Region = created.Region
         };
 
-        return CreatedAtAction(nameof(GetClient), new { id = client.Id }, responseDto);
+        return CreatedAtAction(nameof(GetClient), new { id = created.Id }, responseDto);
     }
 
     /// <summary>
-    /// Update an existing client
+    /// Update a client
     /// </summary>
     /// <param name="id">Client ID</param>
     /// <param name="dto">Updated client details</param>
@@ -113,28 +101,22 @@ public class ClientsController(AppDbContext db) : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<ClientDto>> UpdateClient(int id, [FromBody] CreateClientDto dto)
     {
-        var client = await db.Clients.FindAsync(id);
+        var client = await clientRepository.GetByIdAsync(id);
         if (client == null)
             return NotFound();
 
-        if (string.IsNullOrWhiteSpace(dto.Name))
-            return BadRequest("Client name is required.");
-
         client.Name = dto.Name;
-        client.Email = dto.Email;
-        client.Phone = dto.Phone;
-        client.Address = dto.Address;
+        client.ContactDetails = dto.ContactDetails;
+        client.Region = dto.Region;
 
-        db.Clients.Update(client);
-        await db.SaveChangesAsync();
+        var updated = await clientRepository.UpdateAsync(client);
 
         var responseDto = new ClientDto
         {
-            Id = client.Id,
-            Name = client.Name,
-            Email = client.Email,
-            Phone = client.Phone,
-            Address = client.Address
+            Id = updated.Id,
+            Name = updated.Name,
+            ContactDetails = updated.ContactDetails,
+            Region = updated.Region
         };
 
         return Ok(responseDto);
@@ -144,18 +126,15 @@ public class ClientsController(AppDbContext db) : ControllerBase
     /// Delete a client
     /// </summary>
     /// <param name="id">Client ID</param>
-    /// <returns>No content</returns>
+    /// <returns>Success indicator</returns>
     [HttpDelete("{id}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteClient(int id)
     {
-        var client = await db.Clients.FindAsync(id);
-        if (client == null)
+        var result = await clientRepository.DeleteAsync(id);
+        if (!result)
             return NotFound();
-
-        db.Clients.Remove(client);
-        await db.SaveChangesAsync();
 
         return NoContent();
     }

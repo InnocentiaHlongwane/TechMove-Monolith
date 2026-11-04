@@ -1,39 +1,48 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
-using Microsoft.EntityFrameworkCore;
-using TechMove.Core.Data;
 using TechMove.Core.Models;
 using TechMove.Core.Services;
+using TechMove.Web.Services;
 
 namespace TechMove.Web.Controllers;
 
-public class ServiceRequestsController(AppDbContext db, CurrencyService currency) : Controller
+/// <summary>
+/// MVC Controller for managing service requests via API calls
+/// </summary>
+public class ServiceRequestsController(
+    IServiceRequestApiClient serviceRequestClient,
+    IClientApiClient clientClient,
+    IContractApiClient contractClient,
+    CurrencyService currency) : Controller
 {
-    public async Task<IActionResult> Index() =>
-        View(await db.ServiceRequests
-            .Include(s => s.Contract)!
-            .ThenInclude(c => c!.Client)
-            .OrderByDescending(s => s.CreatedAt)
-            .ToListAsync());
+    /// <summary>
+    /// Display list of all service requests
+    /// </summary>
+    public async Task<IActionResult> Index()
+    {
+        var requests = await serviceRequestClient.GetServiceRequestsAsync();
+        return View(requests.OrderByDescending(s => s.CreatedAt).ToList());
+    }
 
+    /// <summary>
+    /// Display create service request form
+    /// </summary>
     public async Task<IActionResult> Create()
     {
-        await LoadClients();
         await LoadContracts();
 
         // Pass contract data as JSON for client-side filtering
-        var contracts = await db.Contracts
-            .Include(c => c.Client)
+        var contracts = await contractClient.GetContractsAsync();
+        var activeContracts = contracts
             .Where(c => c.Status != ContractStatus.Expired && c.Status != ContractStatus.OnHold)
-            .OrderBy(c => c.Client!.Name)
-            .ToListAsync();
+            .ToList();
 
-        var contractData = contracts.Select(c => new 
-        { 
-            id = c.Id, 
-            clientId = c.Client!.Id,
-            clientName = c.Client!.Name,
-            display = $"{c.Client!.Name} — #{c.Id} ({c.Status})"
+        var contractData = activeContracts.Select(c => new
+        {
+            id = c.Id,
+            clientId = c.ClientId,
+            clientName = c.Client?.Name ?? "Unknown",
+            display = $"{c.Client?.Name ?? "Unknown"} — #{c.Id} ({c.Status})"
         }).ToList();
 
         ViewBag.ContractData = System.Text.Json.JsonSerializer.Serialize(contractData);
@@ -52,14 +61,21 @@ public class ServiceRequestsController(AppDbContext db, CurrencyService currency
             ModelState.AddModelError("", "Currency service returned an invalid rate.");
             ViewBag.UsdToZarRate = 0m;
         }
+
         return View();
     }
 
+    /// <summary>
+    /// Handle service request creation
+    /// </summary>
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(int contractId, string description, decimal usdAmount, string submitCurrency)
     {
-        var contract = await db.Contracts.FindAsync(contractId);
-        if (contract is null)
+        // Validate contract
+        var activeContracts = await contractClient.GetContractsAsync();
+        var contract = activeContracts.FirstOrDefault(c => c.Id == contractId);
+
+        if (contract == null)
             ModelState.AddModelError(nameof(contractId), "Select a valid contract.");
         else if (!ContractWorkflow.CanCreateServiceRequest(contract.Status))
             ModelState.AddModelError("", $"A service request cannot be created because this contract is {contract.Status}. Choose an Active or Draft contract.");
@@ -72,7 +88,6 @@ public class ServiceRequestsController(AppDbContext db, CurrencyService currency
 
         if (!ModelState.IsValid)
         {
-            await LoadClients();
             await LoadContracts(contractId);
             try
             {
@@ -100,39 +115,41 @@ public class ServiceRequestsController(AppDbContext db, CurrencyService currency
 
         // Server recalculates the amount; never trust a client-posted calculated cost.
         var zar = Math.Round(usdAmount * rate, 2, MidpointRounding.AwayFromZero);
-        var request = new ServiceRequest
+
+        try
         {
-            ContractId = contractId,
-            Description = description.Trim(),
-            OriginalUsdAmount = usdAmount,
-            Cost = zar,
-            Currency = "ZAR",
-            CreatedAt = DateTime.UtcNow
-        };
-        db.ServiceRequests.Add(request);
-        await db.SaveChangesAsync();
-        return RedirectToAction(nameof(Index));
+            // Call API to create service request
+            var request = await serviceRequestClient.CreateServiceRequestAsync(contractId, description.Trim(), zar, "ZAR");
+
+            TempData["SuccessMessage"] = $"Service request {request.Id} created successfully.";
+            return RedirectToAction(nameof(Index));
+        }
+        catch (Exception ex)
+        {
+            ModelState.AddModelError("", $"Error creating service request: {ex.Message}");
+            await LoadContracts(contractId);
+            return View();
+        }
     }
 
-    private async Task LoadClients()
-    {
-        var clients = await db.Clients
-            .OrderBy(c => c.Name)
-            .ToListAsync();
-        ViewBag.ClientId = new SelectList(clients, "Id", "Name");
-    }
-
+    /// <summary>
+    /// Load available contracts for dropdown
+    /// </summary>
     private async Task LoadContracts(int? selected = null)
     {
-        var contracts = await db.Contracts
-            .Include(c => c.Client)
+        var contracts = await contractClient.GetContractsAsync();
+        var activeContracts = contracts
             .Where(c => c.Status != ContractStatus.Expired && c.Status != ContractStatus.OnHold)
-            .OrderBy(c => c.Client!.Name)
-            .ToListAsync();
-        ViewBag.ContractId = new SelectList(
-            contracts.Select(c => new { c.Id, Display = $"{c.Client!.Name} — #{c.Id} ({c.Status})" }),
-            "Id",
-            "Display",
-            selected);
+            .OrderBy(c => c.Client?.Name ?? "Unknown")
+            .ToList();
+
+        var selectListItems = activeContracts.Select(c => new SelectListItem
+        {
+            Value = c.Id.ToString(),
+            Text = $"{c.Client?.Name ?? "Unknown"} — #{c.Id} ({c.Status})",
+            Selected = (selected.HasValue && c.Id == selected.Value)
+        }).ToList();
+
+        ViewBag.ContractId = new SelectList(selectListItems, "Value", "Text", selected);
     }
 }

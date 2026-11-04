@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TechMove.API.Dtos;
@@ -10,6 +11,7 @@ namespace TechMove.API.Controllers;
 /// <summary>
 /// API Controller for managing contracts
 /// </summary>
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class ContractsController(AppDbContext db, IWebHostEnvironment env) : ControllerBase
