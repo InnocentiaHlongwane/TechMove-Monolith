@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
-using TechMove.Web.Data;
-using TechMove.Web.Services;
+using TechMove.Core.Data;
+using TechMove.Core.Services;
+
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllersWithViews();
 
@@ -20,7 +21,7 @@ using (var scope = app.Services.CreateScope())
     // Seed sample data if database is empty
     if (!db.Clients.Any())
     {
-        var client = new TechMove.Web.Models.Client
+        var client = new TechMove.Core.Models.Client
         {
             Name = "Lebo",
             ContactDetails = "lebo@example.com",
@@ -29,12 +30,12 @@ using (var scope = app.Services.CreateScope())
         db.Clients.Add(client);
         await db.SaveChangesAsync();
 
-        var contract = new TechMove.Web.Models.Contract
+        var contract = new TechMove.Core.Models.Contract
         {
             ClientId = client.Id,
             StartDate = DateTime.UtcNow,
             EndDate = DateTime.UtcNow.AddYears(1),
-            Status = TechMove.Web.Models.ContractStatus.Active,
+            Status = TechMove.Core.Models.ContractStatus.Active,
             ServiceLevel = "Premium"
         };
         db.Contracts.Add(contract);

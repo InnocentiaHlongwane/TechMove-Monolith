@@ -1,3 +1,17 @@
-using TechMove.Web.Services; using Xunit;
+using TechMove.Core.Services;
+using Xunit;
+
 namespace TechMove.Tests;
-public class FileValidationTests { [Theory] [InlineData("agreement.pdf","application/pdf",true)] [InlineData("malware.exe","application/x-msdownload",false)] [InlineData("fake.pdf","application/octet-stream",false)] [InlineData("agreement.PDF","application/pdf",true)] public void OnlyPdfFilesAreAccepted(string name,string contentType,bool expected) { Assert.Equal(expected,UploadValidator.IsValidPdf(name,contentType)); } }
+
+public class FileValidationTests
+{
+    [Theory]
+    [InlineData("agreement.pdf", "application/pdf", true)]
+    [InlineData("malware.exe", "application/x-msdownload", false)]
+    [InlineData("fake.pdf", "application/octet-stream", false)]
+    [InlineData("agreement.PDF", "application/pdf", true)]
+    public void OnlyPdfFilesAreAccepted(string name, string contentType, bool expected)
+    {
+        Assert.Equal(expected, UploadValidator.IsValidPdf(name, contentType));
+    }
+}

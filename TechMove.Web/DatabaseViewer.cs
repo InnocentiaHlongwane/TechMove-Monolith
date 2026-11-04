@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using TechMove.Web.Data;
+using TechMove.Core.Data;
 
 namespace TechMove.Web;
 

@@ -1,2 +1,0 @@
-namespace TechMove.Web.Services;
-public static class UploadValidator { public static bool IsValidPdf(string? fileName, string? contentType) => !string.IsNullOrWhiteSpace(fileName) && Path.GetExtension(fileName).Equals(".pdf", StringComparison.OrdinalIgnoreCase) && string.Equals(contentType, "application/pdf", StringComparison.OrdinalIgnoreCase); }

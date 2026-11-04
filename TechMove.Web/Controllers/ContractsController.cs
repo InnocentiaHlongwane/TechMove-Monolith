@@ -1,4 +1,9 @@
-using Microsoft.AspNetCore.Mvc; using Microsoft.AspNetCore.Mvc.Rendering; using Microsoft.EntityFrameworkCore; using TechMove.Web.Data; using TechMove.Web.Models; using TechMove.Web.Services;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.EntityFrameworkCore;
+using TechMove.Core.Data;
+using TechMove.Core.Models;
+using TechMove.Core.Services;
 namespace TechMove.Web.Controllers;
 public class ContractsController(AppDbContext db, IWebHostEnvironment env) : Controller {
  public async Task<IActionResult> Index(DateTime? startDate, DateTime? endDate, ContractStatus? status) { var query=db.Contracts.Include(c=>c.Client).AsQueryable(); if(startDate.HasValue) query=query.Where(c=>c.StartDate>=startDate.Value); if(endDate.HasValue) query=query.Where(c=>c.EndDate<=endDate.Value); if(status.HasValue) query=query.Where(c=>c.Status==status.Value); ViewBag.StartDate=startDate?.ToString("yyyy-MM-dd"); ViewBag.EndDate=endDate?.ToString("yyyy-MM-dd"); ViewBag.Status=status; return View(await query.OrderByDescending(c=>c.StartDate).ToListAsync()); }

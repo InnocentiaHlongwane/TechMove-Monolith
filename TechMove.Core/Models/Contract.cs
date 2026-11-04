@@ -1,0 +1,29 @@
+using System.ComponentModel.DataAnnotations;
+
+namespace TechMove.Core.Models;
+
+public enum ContractStatus
+{
+    Draft,
+    Active,
+    Expired,
+    OnHold
+}
+
+public class Contract
+{
+    public int Id { get; set; }
+    [Range(1, int.MaxValue, ErrorMessage = "Select a client.")]
+    public int ClientId { get; set; }
+    public Client? Client { get; set; }
+    [DataType(DataType.Date)]
+    public DateTime StartDate { get; set; }
+    [DataType(DataType.Date)]
+    public DateTime EndDate { get; set; }
+    [Required]
+    public ContractStatus Status { get; set; } = ContractStatus.Draft;
+    [Required, StringLength(100)]
+    public string ServiceLevel { get; set; } = "";
+    public string SignedAgreementPath { get; set; } = "";
+    public List<ServiceRequest> ServiceRequests { get; set; } = new();
+}

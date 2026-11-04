@@ -1,9 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
-using TechMove.Web.Data;
-using TechMove.Web.Models;
-using TechMove.Web.Services;
+using TechMove.Core.Data;
+using TechMove.Core.Models;
+using TechMove.Core.Services;
 
 namespace TechMove.Web.Controllers;
 
