@@ -1,4 +1,5 @@
 using TechMove.Web.Services;
+using TechMove.Core.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllersWithViews();
@@ -38,6 +39,11 @@ builder.Services.AddHttpClient<IServiceRequestApiClient, ServiceRequestApiClient
     client.BaseAddress = new Uri(apiBaseUrl);
     client.Timeout = TimeSpan.FromSeconds(30);
 }).AddHttpMessageHandler<AuthenticatedHttpClientHandler>();
+
+builder.Services.AddHttpClient<CurrencyService>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(10);
+});
 
 // HTTP client for login endpoint (no auth handler needed)
 builder.Services.AddHttpClient("AuthClient", client =>
